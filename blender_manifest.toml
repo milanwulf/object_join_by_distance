@@ -1,0 +1,18 @@
+schema_version = "1.0.0"
+
+id = "object_join_by_distance"
+version = "0.3.0"
+name = "Join Objects by Distance"
+tagline = "Join selected objects by proximity."
+maintainer = "Milan Wulf (Original by leBluem)"
+type = "add-on"
+
+# Optional link to documentation, support, source files, etc
+# website = "https://github.com/milanwulf/object_join_by_distance"
+
+tags = ["Object", "Modeling", "Join"]
+
+blender_version_min = "4.2.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+license = ["SPDX:GPL-2.0-or-later"]

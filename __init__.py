@@ -1,90 +1,63 @@
-bl_info = {
-    "name": "Join Objects by distance",
-    "author": "leBluem",
-    "version": (0, 2),
-    "blender": (2, 80, 0),
-    "description": "Join selected objects by variable distance, optional: set origin to object, def. shortcut: J",
-    "category": "Object",
-    "url": "https://github.com/leBluem/object_join_by_distance"
-}
+import bpy
+import math
+from bpy.props import BoolProperty, FloatProperty
 
-import bpy, sys, math
-from bpy.props import BoolProperty, EnumProperty, StringProperty, FloatProperty
-
-def getDistance(p1, p2):
-    return math.sqrt( (p2.x-p1.x) ** 2 + (p2.y-p1.y) ** 2 + (p2.z-p1.z) ** 2 )
+def get_distance(p1, p2):
+    return math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2 + (p2.z - p1.z) ** 2)
 
 def join_objects(self, context):
     selected_obj = bpy.context.selected_objects.copy()
-    if len(selected_obj)>0:
-        i1 = 0
-        i2 = 0
+    if len(selected_obj) > 0:
         done = []
         joined = []
-        if self.setOriginToObject:
-            # bpy.data.objects[obj.name].origin_set(type='ORIGIN_CENTER_OF_MASS', center='MEDIAN')
+
+        if self.set_origin_to_object:
             bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_MASS', center='MEDIAN')
+
         for obj in bpy.context.selected_objects:
             obj.select_set(False)
 
-        for obj in selected_obj:
-            if i1>0 and (not obj in done):
-                i2 = i1 + 1
-                for objINNER in selected_obj:
-                    if i2>0 and (not objINNER in done) and objINNER!=obj:
-                        distance = getDistance( obj.location, objINNER.location )
-                        # print(str(round(distance,3)))
+        for i, obj in enumerate(selected_obj):
+            if obj not in done:
+                for obj_inner in selected_obj[i+1:]:
+                    if obj_inner not in done and obj_inner != obj:
+                        distance = get_distance(obj.location, obj_inner.location)
                         if distance < self.scaling:
-                            # bpy.context.view_layer.objects.active = bpy.data.objects[obj.name]
                             bpy.context.view_layer.objects.active = obj
                             obj.select_set(True)
-                            bpy.data.objects[objINNER.name].select_set(True) # 2.8+
-                            done.append(objINNER)
+                            obj_inner.select_set(True)
+                            done.append(obj_inner)
                             bpy.ops.object.join()
                             joined.append(obj)
                             obj.select_set(False)
-                            # bpy.ops.object.join(bpy.data.objects[objINNER.name])
-                            # selected_obj[0].name
-                    i2 += 1
-            i1 += 1
 
-        # select something so you see changes
-        i = 0
-        for obj in selected_obj:
-            if not obj in done:
-                if i==0:
+        # Select the remaining objects that were not joined
+        for i, obj in enumerate(selected_obj):
+            if obj not in done:
+                if i == 0:
                     bpy.context.view_layer.objects.active = obj
-                    i += 1
                 obj.select_set(True)
-
-        # select more? nah!
-        # for obj in joined:
-        #     if not obj in done:
-        #         if i==0:
-        #             bpy.context.view_layer.objects.active = obj
-        #             i += 1
-        #         obj.select_set(True)
     else:
         print('Nothing selected!')
 
-class JoinByDistance(bpy.types.Operator):
+class OBJECT_OT_JoinByDistance(bpy.types.Operator):
     """Join by distance"""
-    bl_idname = "object.join_by_distance"
+    bl_idname = "object.join_by_distance"  # Blender Operator ID
     bl_label = "Join objects by distance"
     bl_options = {'REGISTER', 'UNDO'}
 
-    scaling     : FloatProperty(
+    scaling: FloatProperty(
         name="Distance",
-        description="minimal distance between objects",
+        description="Minimal distance between objects",
         min=0.0,
         max=10000000.0,
         default=0.01
-        )
-    setOriginToObject : BoolProperty(
+    )
+    set_origin_to_object: BoolProperty(
         name="Set Origin to Object center first",
-        description="if object origin is somewhere else",
-        default=1
-        )
+        description="If object origin is somewhere else",
+        default=True
+    )
 
     def execute(self, context):
         join_objects(self, context)
@@ -92,23 +65,17 @@ class JoinByDistance(bpy.types.Operator):
 
 addon_keymaps = []
 
-# Register
-classes = [
-    JoinByDistance
-]
-
 def register():
-    bpy.utils.register_class(JoinByDistance)
+    bpy.utils.register_class(OBJECT_OT_JoinByDistance)
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
     if kc:
         km = wm.keyconfigs.addon.keymaps.new(name='Object Mode', space_type='EMPTY')
-        # you can chnge the shortcut later
-        kmi = km.keymap_items.new(JoinByDistance.bl_idname, 'J', 'PRESS')
+        kmi = km.keymap_items.new(OBJECT_OT_JoinByDistance.bl_idname, 'J', 'PRESS')
         addon_keymaps.append((km, kmi))
 
 def unregister():
-    bpy.utils.unregister_class(JoinByDistance)
+    bpy.utils.unregister_class(OBJECT_OT_JoinByDistance)
     for km, kmi in addon_keymaps:
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
